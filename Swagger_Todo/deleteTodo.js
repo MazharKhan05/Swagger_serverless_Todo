@@ -8,7 +8,7 @@
  *  here.  You can regenerate this with the latest definition by
  *  deleting the lambda and allowing SwaggerHub to recreate it
  **/
-const { DynamoDBClient,GetItemCommand,DeleteItemCommand } = require('@aws-sdk/client-dynamodb');
+const { DynamoDBClient,ScanCommand,DeleteItemCommand,BatchWriteItemCommand } = require('@aws-sdk/client-dynamodb');
 const REGION = `us-east-1`; // Put your correct aws region
 const ddbClient = new DynamoDBClient({ region: REGION });
 exports.handler =async function(event, context, callback) {
@@ -16,59 +16,85 @@ exports.handler =async function(event, context, callback) {
   // var auth-token = event.auth-token;
   // path: (required)  todo id to delete
   let isStateSet = false
+  const actionPerformerOrgId = 'OrgID#98765'
+  const actionPerformerUserId = 'UserID#12345' //the action performer, extract userId from jwt token
   let response={
     message: '',
     statusCode: ''
   };
-  const id = event.queryStringParameters.todoId;
+  let deleteParams = {}
+  console.log(event)
+  const id = event.todoId;
   if(!id){
     response.message = 'Invalid input provided.';
+    response.statusCode = 400;
     return response;
   }
   
   const getTodoParams = {
-    TableName: 'todoOrg',
+    TableName: 'TodosList',
     Key: {
-      todoId: {S:`${id}`},
+      PK: {S: `${actionPerformerOrgId}:${actionPerformerUserId}`},
+      SK: {S: `TodoId#${id}`},
     }
   };
-  let paramsState = {
-    TableName: 'todoState',
-    Key: {
-      stateId: {S:``}
+  
+  const params = {
+    TableName: 'TodosList',
+    FilterExpression : '#PK = :PK and  begins_with (#SK , :SK )',
+    ExpressionAttributeNames: {
+        "#PK": "PK",
+        "#SK": "SK"
+    },
+    ExpressionAttributeValues: {
+        ':PK': {'S': `${actionPerformerOrgId}:${actionPerformerUserId}`},
+        ':SK': {'S': `TodoId#${id}`}
     }
   };
   try {
-    const tododata = await ddbClient.send(new GetItemCommand(getTodoParams));
-    console.log(tododata);
-    if(tododata.$metadata && tododata.$metadata.httpStatusCode === 200){
-      isStateSet = true
-      paramsState.Key.stateId.S = `${tododata.Item.stateId.S}`;
-    }
+    let deleteTodos=[]
+    let tempTodos=[]
+    let tempTodo = {}
+    const tododata = await ddbClient.send(new ScanCommand(params));
+    console.log(tododata.Items, "todos after filtering...");
+    deleteTodos = tododata.Items;
+    deleteTodos.map(todo=>{
+        tempTodo= {
+          "DeleteRequest": { 
+            "Key" : {
+              "PK": todo["PK"],
+              "SK": todo["SK"]
+            }
+          }
+        }
+        // tempTodo["PK"] = todo["PK"]
+        // tempTodo["SK"] = todo["SK"]
+        tempTodos.push(tempTodo);
+        tempTodo = {};
+    })
+    deleteParams["RequestItems"]={
+      'TodosList': tempTodos
+    };
+    console.log("batchDelete params ", deleteParams)
+    if(tododata.$metadata && tododata.$metadata.httpStatusCode === 200)isStateSet = true
     } catch (err) {
       console.error(err);
       return err;
     }
+    //after fetching todo and all its history, delete all records
     
-      
-      console.log("state to be deleted", paramsState.Key.stateId.S);
       if(isStateSet){
-        try {
-          const stateDeldata = await ddbClient.send(new DeleteItemCommand(paramsState));
-          console.log(stateDeldata);
-          if(stateDeldata.$metadata && stateDeldata.$metadata.httpStatusCode === 200){
-            try{
-                const data = await ddbClient.send(new DeleteItemCommand(getTodoParams));
-                if(data.$metadata && data.$metadata.httpStatusCode === 200){
-                  response.message = 'Successfully deleted todo';
-                  response.statusCode = 200;
-                }
-              } catch (err) {
-                return err;
-            }
+        try{
+          
+          const { UnprocessedItems = [] } = await ddbClient.send(new BatchWriteItemCommand(deleteParams))
+          console.log(UnprocessedItems, "if any item are left unprocessed they will be shown here...")
+          // const data = await ddbClient.send(new DeleteItemCommand(params));
+          if(UnprocessedItems === {}){
+            response.message = 'Successfully deleted todo';
+            response.statusCode = 200;
           }
         } catch (err) {
-          return err;
+            return err;
         }
       }
     return response

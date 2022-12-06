@@ -24,8 +24,6 @@ paths:
                 $ref: '#/components/schemas/allTodos'
         '404':
           description: No todos found
-        '405':
-          description: Validation exception
     post:
       tags:
         - todo
@@ -47,14 +45,18 @@ paths:
               $ref: '#/components/schemas/postTodo'
         required: true
       responses:
-        '201':
+        '200':
           description: Successful todo creation
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/responseTodo'          
-        '405':
+                $ref: '#/components/schemas/responseTodo' 
+        '400':
           description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/inValidInput'
   /todos/{todoId}:
     put:
       tags:
@@ -75,16 +77,20 @@ paths:
           required: true
           schema:
             type: integer
-            format: int64
+            format: int256
       responses:
         '200':
           description: successfully updated todo
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/responseTodo'          
+                $ref: '#/components/schemas/uptResponseTodo'
         '400':
           description: Invalid ID supplied
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/inValidInput'
         '404':
           description: Todo not found
     delete:
@@ -106,72 +112,132 @@ paths:
           required: true
           schema:
             type: integer
-            format: int64
+            format: int256
       responses:
         '200':
           description: successfully deleted todo
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/responseTodo'
         '400':
           description: Invalid todo id
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/inValidInput'
   
 components:
   schemas:
     postTodo:
       required:
-        - id
         - name
-        - status
       type: object
       properties:
-        id:
-          type: string
         name:
           type: string
           example: ReadBook
-        status:
-          type: string
-          description: todo status for an org
-          enum:
-            - pending
-            - processing
-            - done
-            - cancelled
     allTodos:
-      type: array
-      items:
-        properties:
-          id:
-            type: string
-          name:
-            type: string
-            example: ReadBook
-          status:
-            type: string
-            description: todo status for an org
-            enum:
-              - pending
-              - processing
-              - done
-              - cancelled
+      required:
+        - message
+        - statusCode
+        - fetchedTodos
+      type: object
+      properties:
+        message:
+          type: string
+        statusCode:
+          type: number
+          example: 200
+        fetchedTodos:
+          type: array
+          items:
+            properties:
+              PK:
+                type: string
+              SK:
+                type: string
+              Name:
+                type: string
+              State:
+                type: string
+                description: todo status for an org
+                enum:
+                  - pending
+                  - processing
+                  - done
+                  - cancelled
+              time:
+                type: string
     responseTodo:
       required:
-        - id
-        - name
-        - status
+        - message
+        - statusCode
       type: object
       properties:
-        id:
+        message:
           type: string
-        name:
+        statusCode:
+          type: number
+          example: 200
+        createdTodo:
+          type: object
+          properties:
+            PK:
+              type: string
+            SK:
+              type: string
+            Name:
+              type: string
+            State:
+                type: string
+                description: todo status for an org
+                enum:
+                  - pending
+                  - processing
+                  - done
+                  - cancelled
+            time:
+              type: string
+    uptResponseTodo:
+      required:
+        - updatedTodo
+      type: object
+      properties:
+        message:
           type: string
-          example: ReadBook
-        status:
+        statusCode:
+          type: number
+          example: 200
+        updatedTodo:
+          type: object
+          properties:
+            PK:
+              type: string
+            SK:
+              type: string
+            Name:
+              type: string
+            State:
+                type: string
+                description: todo status for an org
+                enum:
+                  - pending
+                  - processing
+                  - done
+                  - cancelled
+            time:
+              type: string
+    inValidInput:
+      required:
+        - message
+      type: object
+      properties:
+        message:
           type: string
-          description: todo status for an org
-          enum:
-            - pending
-            - processing
-            - done
-            - cancelled
+        statusCode:
+          type: number
+          example: 400
 servers:
   # Added by API Auto Mocking Plugin
   - description: SwaggerHub API Auto Mocking

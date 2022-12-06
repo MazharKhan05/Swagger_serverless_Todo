@@ -10,6 +10,7 @@
  **/
 const { DynamoDBClient,PutItemCommand,GetItemCommand } = require('@aws-sdk/client-dynamodb');
 const { v4: uuidv4 } = require('uuid');
+const ULID = require('ulid')
 const REGION = `us-east-1`; // Put your correct aws region
 const ddbClient = new DynamoDBClient({ region: REGION });
 
@@ -22,14 +23,15 @@ exports.handler = async function(event, context, callback) {
   const name = body["name"];
   const currDateTime = new Date();
   const DateTimeFormat = currDateTime.toISOString();
-  const stateId = uuidv4();
-  const todoId = uuidv4();
+  const todoId = ULID.ulid();
   let isStateSet = false
-  let createdTodo;
+  const actionPerformerOrgId = 'OrgID#98765'
+  const actionPerformerUserId = 'UserID#12345'
   
   let response={
     message: '',
-    statusCode: null
+    statusCode: null,
+    createdTodo: {}
   };
   if(!body){
     response.message = 'Invalid input provided.';
@@ -39,60 +41,76 @@ exports.handler = async function(event, context, callback) {
     response.message = 'Invalid input provided.';
     return response;
   }
-  const paramsState = {
-    TableName: 'todoState',
+
+   const paramsMaster = {
+    TableName: 'TodosList',
     Item: {
-      stateId: {S:`${stateId}`},
-      state: {S:`pending`},
-      stateChangeTime : {S:`${DateTimeFormat}`},
-    },
+      PK: {S: `${actionPerformerOrgId}:${actionPerformerUserId}`},
+      SK: {S:`TodoId#${todoId}`},
+      Name: {S:`${name}`},
+      State: {S:`pending`},
+      time: {S:`${DateTimeFormat}`}
+    }
    };
-   const paramsTodo = {
-    TableName: 'todoOrg',
+   const paramsChild = {
+    TableName: 'TodosList',
     Item: {
-      todoId: {S:`${todoId}`},
-      name: {S:`${name}`},
-      orgId: {S:"54321"},
-      stateId : {S:`${stateId}`},
-    },
+      PK: {S: `${actionPerformerOrgId}:${actionPerformerUserId}`},
+      SK: {S:`TodoId#${todoId}:State#pending`},
+      Name: {S:`${name}`},
+      State: {S:`pending`},
+      time: {S:`${DateTimeFormat}`}
+    }
    };
+   const getTodoParams = {
+      TableName: 'TodosList',
+      Key: {
+        PK: {S: `${actionPerformerOrgId}:${actionPerformerUserId}`},
+        SK: {S:`TodoId#${todoId}`}
+      }
+    };
    try {
-    const data = await ddbClient.send(new PutItemCommand(paramsState));
-    console.log(data);
-    if(data.$metadata && data.$metadata.httpStatusCode === 200){
-      isStateSet = true
-      if(isStateSet){
+      const data = await ddbClient.send(new PutItemCommand(paramsMaster));
+      if(data.$metadata && data.$metadata.httpStatusCode === 200){
+        response.message = 'Successfully created todo';
+        response.statusCode = 200;
         try {
-          const data = await ddbClient.send(new PutItemCommand(paramsTodo));
-          console.log(data);
+          const data = await ddbClient.send(new PutItemCommand(paramsChild));
           if(data.$metadata && data.$metadata.httpStatusCode === 200){
-            response.message = 'Successfully created todo';
             response.statusCode = 200;
-            try {
-              createdTodo = await ddbClient.send(new GetItemCommand({
-                TableName: "todoOrg",
-                Key: {
-                  todoId: {S:`${todoId}`},
-                }
-              }));
-            } catch (err) {
-                console.log(err, "err");
-                return err;
-            }
           }
         } catch (err) {
-          response = err
           console.error(err);
+          return err;
         }
       }
-    }
     } catch (err) {
-      response = err
       console.error(err);
+      return err;
+    }
+    
+  
+  try {
+    const tododata = await ddbClient.send(new GetItemCommand(getTodoParams));
+    console.log(tododata);
+    if(tododata.Item.PK.S != `${actionPerformerOrgId}:${actionPerformerUserId}`){ //if not appropriate user dont allow him to delete
+      response.message = 'Action Forbidden!!!';
+      response.statusCode = 403;
+      return response;
+    }
+    let keys = Object.keys(tododata.Item);
+    for(let i=0;i<keys.length;i++){
+      const val = tododata.Item[keys[i]].S;
+      response.createdTodo[keys[i]] = val;
+    }
+    if(tododata.$metadata && tododata.$metadata.httpStatusCode === 200)isStateSet = true
+    } catch (err) {
+      console.error(err);
+      return err;
     }
   
-    if(response.statusCode === 200){
-      return createdTodo.Item;
+    if(response.statusCode === 200 && isStateSet){
+      return response;
     }
     return response;
 };

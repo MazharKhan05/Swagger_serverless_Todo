@@ -31,8 +31,10 @@ exports.handler = async function(event, context, callback) {
   const DateTimeFormat = currDateTime.toISOString();
   const stateId = uuidv4();
   let isStateSet = false
-  let updatedTodo;
-  
+  const actionPerformerOrgId = 'OrgID#98765'
+  const actionPerformerUserId = 'UserID#12345'
+  let updatedTodo={};
+  const newTodo = {};
   let response={
     todoStateMsg: '',
     todoOrgMsg: '',
@@ -40,42 +42,52 @@ exports.handler = async function(event, context, callback) {
   };
   let targetTodo = {};
   
-  
   if(!id){
     response.message = 'Invalid input provided.';
     return response;
   }
-  if(name === ""){
+  if(name === "" || status === ""){
     response.message = 'Invalid input provided.';
     return response;
   }
   const getTodoParams = {
-    TableName: "todoOrg",
+    TableName: "TodosList",
+    Item: {
+      PK: {S: `${actionPerformerOrgId}:${actionPerformerUserId}`},
+      SK: {S: `TodoId#${id}`},
+      Name: {S: `${name}`},
+      State: {S:`${status}`},
+      time: {S:`${DateTimeFormat}`}
+    }
+  };
+  const getTodo = {
+    TableName: "TodosList",
     Key: {
-      todoId: {S:`${id}`},
+      PK: {S: `${actionPerformerOrgId}:${actionPerformerUserId}`},
+      SK: {S:`TodoId#${id}`}
     }
   };
   
-  let paramsState = {
-    TableName: 'todoState',
-    Item: {
-      stateId: {S:`${stateId}`},
-      state: {S:`${status}`},
-      stateChangeTime : {S:`${DateTimeFormat}`},
-    },
-   };
   try {
-    const data = await ddbClient.send(new GetItemCommand(getTodoParams));
-    console.log(data);
+    const data = await ddbClient.send(new GetItemCommand(getTodo));
+    console.log(data, "record to be updated...");
     if(data.$metadata && data.$metadata.httpStatusCode === 200){
       isStateSet = true
       targetTodo = data.Item;
 
-      if(isStateSet && status && status !== ""){
-        paramsState.Item.stateId.S = data.Item.stateId.S;
+      if(isStateSet){
+        
+        const todoState = (status && status !== "") ? status : targetTodo.State.S;
+        const todoName = (name === "" || !name) ? targetTodo.Name.S : name;
+        getTodoParams.Item.State.S = todoState;
+        getTodoParams.Item.Name.S = todoName;
+        const prevSK = targetTodo.SK.S;
+        getTodoParams.Item.SK.S = `${prevSK}:State#${todoState}`;
+        console.log(getTodoParams, "params to be updated...")
         try {
-          const data = await ddbClient.send(new PutItemCommand(paramsState));
-          if(data.$metadata && data.$metadata.httpStatusCode === 200){
+          const data = await ddbClient.send(new PutItemCommand(getTodoParams));
+          console.log("updation result,", data)
+          if(data && data.$metadata && data.$metadata.httpStatusCode === 200){
             response.todoStateMsg = 'Successfully updated todoState';
             response.statusCode = 200;
           }
@@ -89,43 +101,32 @@ exports.handler = async function(event, context, callback) {
       response = err
       console.error(err);
     }
-  
-  const paramsTodo = {
-    TableName: 'todoOrg',
-    Item: {
-      todoId: {S:`${targetTodo.todoId.S}`},
-      name: {S:`${name}`},
-      orgId: {S:"54321"},
-      stateId : {S:`${targetTodo.stateId.S}`},
-    },
-  };
-  try {
-    if(name && name !== ""){
-      const data = await ddbClient.send(new PutItemCommand(paramsTodo));
-      if(data.$metadata && data.$metadata.httpStatusCode === 200){
-        response.todoOrgMsg = 'Successfully updated todoOrg';
-        response.statusCode = 200;
-      }      
-    }
-  } catch (err) {
-      console.error(err);
-      return err;
-    }
-    
+
     try {
+        const todoState = (status && status !== "") ? status : targetTodo.State.S;
+      
         updatedTodo = await ddbClient.send(new GetItemCommand({
-        TableName: "todoOrg",
+        TableName: "TodosList",
         Key: {
-            todoId: {S:`${targetTodo.todoId.S}`},
+            PK: {S: `${actionPerformerOrgId}:${actionPerformerUserId}`},
+            SK: {S:`TodoId#${id}:State#${todoState}`},
             }
         }));
         console.log(updatedTodo, "updatedTodo here...");
+        
+        let keys = Object.keys(updatedTodo.Item);
+        
+        for(let i=0;i<keys.length;i++){
+          const val = updatedTodo.Item[keys[i]].S;
+          newTodo[keys[i]] = val;
+        }
         } catch (err) {
             console.log(err, "err");
             return err;
         }
+        
     if(response.statusCode === 200){
-      return updatedTodo.Item;
+      return newTodo;
     }
     return response;
 };
