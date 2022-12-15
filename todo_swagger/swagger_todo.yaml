@@ -1,0 +1,329 @@
+openapi: 3.0.3
+info:
+  title: Swagger todo-api
+  description: |-
+    Api definition for todos.
+  version: 1.0.0
+tags:
+  - name: todo
+    description: todo of an organization
+paths:
+  /todos:
+    get:
+      tags:
+        - todo
+      summary: fetch all todos
+      description: fetch todos
+      operationId: getTodos
+      parameters:
+        - name: authToken
+          in: header
+          description: login-token to authorize user
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/allTodos'
+        '404':
+          description: No todos found
+    post:
+      tags:
+        - todo
+      summary: Add a new todo
+      description: Add a new todo of an org
+      operationId: addTodo
+      parameters:
+        - name: authToken
+          in: header
+          description: login-token to authorize user
+          required: true
+          schema:
+            type: string
+      requestBody:
+        description: Create a new todo
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/postTodo'
+        required: true
+      responses:
+        '200':
+          description: Successful todo creation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/responseTodo' 
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/inValidInput'
+  /todos/{todoId}:
+    put:
+      tags:
+        - todo
+      summary: Update todo by ID
+      description: Update todo by Id
+      operationId: updateTodo
+      parameters:
+        - name: authToken
+          in: header
+          description: login-token to authorize user
+          required: true
+          schema:
+            type: string
+        - name: todoId
+          in: path
+          description: ID of todo to update
+          required: true
+          schema:
+            type: string
+      requestBody:
+        description: update a created todo
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/updateTodo'
+      responses:
+        '200':
+          description: successfully updated todo
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/uptResponseTodo'
+        '400':
+          description: Invalid ID supplied
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/inValidInput'
+        '404':
+          description: Todo not found
+    delete:
+      tags:
+        - todo
+      summary: Deletes a todo
+      description: delete a todo
+      operationId: deleteTodo
+      parameters:
+        - name: authToken
+          in: header
+          description: login-token to authorize user
+          required: true
+          schema:
+            type: string
+        - name: todoId
+          in: path
+          description: todo id to delete
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: successfully deleted todo
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/responseTodo'
+        '400':
+          description: Invalid todo id
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/inValidInput'
+    get:
+      tags:
+        - todo
+      summary: get a todo's history
+      description: delete a todo
+      operationId: getTodoHistory
+      parameters:
+        - name: authToken
+          in: header
+          description: login-token to authorize user
+          required: true
+          schema:
+            type: string
+        - name: todoId
+          in: path
+          description: todo id for its history
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: successfully fetched todo history
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/historyResponse'
+  
+components:
+  schemas:
+    postTodo:
+      required:
+        - name
+      type: object
+      properties:
+        name:
+          type: string
+          example: ReadBook
+    allTodos:
+      required:
+        - message
+        - statusCode
+      type: object
+      properties:
+        message:
+          type: string
+        statusCode:
+          type: number
+          example: 200
+        errType:
+          type: string
+        fetchedTodos:
+          type: array
+          items:
+            properties:
+              PK:
+                type: string
+              SK:
+                type: string
+              Name:
+                type: string
+              State:
+                type: string
+                description: todo status for an org
+                enum:
+                  - pending
+                  - processing
+                  - done
+                  - cancelled
+              time:
+                type: string
+    historyResponse:
+      required:
+        - message
+        - statusCode
+      type: object
+      properties:
+        message:
+          type: string
+        statusCode:
+          type: number
+          example: 200
+        errType:
+          type: string
+        historyTodos:
+          type: array
+          items:
+            properties:
+              PK:
+                type: string
+              SK:
+                type: string
+              Name:
+                type: string
+              State:
+                type: string
+                description: todo status for an org
+                enum:
+                  - pending
+                  - processing
+                  - done
+                  - cancelled
+              time:
+                type: string            
+    responseTodo:
+      required:
+        - message
+        - statusCode
+      type: object
+      properties:
+        message:
+          type: string
+        statusCode:
+          type: number
+          example: 200
+        errType:
+          type: string
+        createdTodo:
+          type: object
+          properties:
+            PK:
+              type: string
+            SK:
+              type: string
+            Name:
+              type: string
+            State:
+                type: string
+                description: todo status for an org
+                enum:
+                  - pending
+                  - processing
+                  - done
+                  - cancelled
+            time:
+              type: string
+    uptResponseTodo:
+      required:
+        - message
+        - statusCode
+      type: object
+      properties:
+        message:
+          type: string
+        errType:
+          type: string
+        statusCode:
+          type: number
+          example: 200
+        updatedTodo:
+          type: object
+          properties:
+            PK:
+              type: string
+            SK:
+              type: string
+            Name:
+              type: string
+            State:
+                type: string
+                description: todo status for an org
+                enum:
+                  - pending
+                  - processing
+                  - done
+                  - cancelled
+            time:
+              type: string
+    inValidInput:
+      required:
+        - message
+      type: object
+      properties:
+        message:
+          type: string
+        statusCode:
+          type: number
+          example: 400
+    updateTodo:
+      type: object
+      properties:
+        name:
+          type: string
+        status:
+          type: string
+          example: processing
+servers:
+  # Added by API Auto Mocking Plugin
+  - description: SwaggerHub API Auto Mocking
+    url: https://virtserver.swaggerhub.com/KHANMAZHAR72/todo/1.0.0
+x-aws-api-id: '3194x03fwa'
