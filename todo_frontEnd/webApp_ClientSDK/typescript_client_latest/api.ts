@@ -16,7 +16,7 @@ import * as url from "url";
 import * as isomorphicFetch from "isomorphic-fetch";
 import { Configuration } from "./configuration";
 
-const BASE_PATH = "https://5ibauifiqk.execute-api.us-east-1.amazonaws.com/dev".replace(/\/+$/, "");
+const BASE_PATH = "https://api.koknirecipe.com".replace(/\/+$/, "");
 
 /**
  *
@@ -74,7 +74,7 @@ export class RequiredError extends Error {
     name: string
     constructor(public field: string, msg?: string) {
         super(msg);
-        this.name = "RequiredError";
+        this.name = "RequiredError"
     }
 }
 
@@ -224,7 +224,7 @@ export interface PostTodo {
      * @type {string}
      * @memberof PostTodo
      */
-    Name: string;
+    name: string;
 }
 /**
  * 
@@ -250,6 +250,66 @@ export interface ResponseTodo {
      * @memberof ResponseTodo
      */
     errType?: string;
+    /**
+     * 
+     * @type {ResponseTodoCreatedTodo}
+     * @memberof ResponseTodo
+     */
+    createdTodo?: ResponseTodoCreatedTodo;
+}
+/**
+ * 
+ * @export
+ * @interface ResponseTodoCreatedTodo
+ */
+export interface ResponseTodoCreatedTodo {
+    /**
+     * 
+     * @type {string}
+     * @memberof ResponseTodoCreatedTodo
+     */
+    PK?: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof ResponseTodoCreatedTodo
+     */
+    SK?: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof ResponseTodoCreatedTodo
+     */
+    Name?: string;
+    /**
+     * todo status for an org
+     * @type {string}
+     * @memberof ResponseTodoCreatedTodo
+     */
+    State?: ResponseTodoCreatedTodo.StateEnum;
+    /**
+     * 
+     * @type {string}
+     * @memberof ResponseTodoCreatedTodo
+     */
+    time?: string;
+}
+
+/**
+ * @export
+ * @namespace ResponseTodoCreatedTodo
+ */
+export namespace ResponseTodoCreatedTodo {
+    /**
+     * @export
+     * @enum {string}
+     */
+    export enum StateEnum {
+        Pending = <any> 'pending',
+        Processing = <any> 'processing',
+        Done = <any> 'done',
+        Cancelled = <any> 'cancelled'
+    }
 }
 /**
  * 
@@ -262,13 +322,13 @@ export interface UpdateTodo {
      * @type {string}
      * @memberof UpdateTodo
      */
-    Name?: string;
+    name?: string;
     /**
      * 
      * @type {string}
      * @memberof UpdateTodo
      */
-    State?: string;
+    status?: string;
 }
 /**
  * 
@@ -294,6 +354,12 @@ export interface UptResponseTodo {
      * @memberof UptResponseTodo
      */
     statusCode: number;
+    /**
+     * 
+     * @type {ResponseTodoCreatedTodo}
+     * @memberof UptResponseTodo
+     */
+    updatedTodo?: ResponseTodoCreatedTodo;
 }
 /**
  * TodoApi - fetch parameter creator
@@ -346,21 +412,21 @@ export const TodoApiFetchParamCreator = function (configuration?: Configuration)
          * delete a todo
          * @summary Deletes a todo
          * @param {string} authToken login-token to authorize user
-         * @param {string} todo todo id to delete
+         * @param {string} todoId todo id to delete
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        deleteTodo(authToken: string, todo: string, options: any = {}): FetchArgs {
+        deleteTodo(authToken: string, todoId: string, options: any = {}): FetchArgs {
             // verify required parameter 'authToken' is not null or undefined
             if (authToken === null || authToken === undefined) {
                 throw new RequiredError('authToken','Required parameter authToken was null or undefined when calling deleteTodo.');
             }
-            // verify required parameter 'todo' is not null or undefined
-            if (todo === null || todo === undefined) {
-                throw new RequiredError('todo','Required parameter todo was null or undefined when calling deleteTodo.');
+            // verify required parameter 'todoId' is not null or undefined
+            if (todoId === null || todoId === undefined) {
+                throw new RequiredError('todoId','Required parameter todoId was null or undefined when calling deleteTodo.');
             }
-            const localVarPath = `/todos/{todo}`
-                .replace(`{${"todo"}}`, encodeURIComponent(String(todo)));
+            const localVarPath = `/todos/{todoId}`
+                .replace(`{${"todoId"}}`, encodeURIComponent(String(todoId)));
             const localVarUrlObj = url.parse(localVarPath, true);
             const localVarRequestOptions = Object.assign({ method: 'DELETE' }, options);
             const localVarHeaderParameter = {} as any;
@@ -384,21 +450,21 @@ export const TodoApiFetchParamCreator = function (configuration?: Configuration)
          * delete a todo
          * @summary get a todo's history
          * @param {string} authToken login-token to authorize user
-         * @param {string} todo todo id for its history
+         * @param {string} todoId todo id for its history
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        getTodoHistory(authToken: string, todo: string, options: any = {}): FetchArgs {
+        getTodoHistory(authToken: string, todoId: string, options: any = {}): FetchArgs {
             // verify required parameter 'authToken' is not null or undefined
             if (authToken === null || authToken === undefined) {
                 throw new RequiredError('authToken','Required parameter authToken was null or undefined when calling getTodoHistory.');
             }
-            // verify required parameter 'todo' is not null or undefined
-            if (todo === null || todo === undefined) {
-                throw new RequiredError('todo','Required parameter todo was null or undefined when calling getTodoHistory.');
+            // verify required parameter 'todoId' is not null or undefined
+            if (todoId === null || todoId === undefined) {
+                throw new RequiredError('todoId','Required parameter todoId was null or undefined when calling getTodoHistory.');
             }
-            const localVarPath = `/todos/{todo}`
-                .replace(`{${"todo"}}`, encodeURIComponent(String(todo)));
+            const localVarPath = `/todos/{todoId}`
+                .replace(`{${"todoId"}}`, encodeURIComponent(String(todoId)));
             const localVarUrlObj = url.parse(localVarPath, true);
             const localVarRequestOptions = Object.assign({ method: 'GET' }, options);
             const localVarHeaderParameter = {} as any;
@@ -454,22 +520,22 @@ export const TodoApiFetchParamCreator = function (configuration?: Configuration)
          * Update todo by Id
          * @summary Update todo by ID
          * @param {string} authToken login-token to authorize user
-         * @param {string} todo ID of todo to update
+         * @param {string} todoId ID of todo to update
          * @param {UpdateTodo} [body] update a created todo
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        updateTodo(authToken: string, todo: string, body?: UpdateTodo, options: any = {}): FetchArgs {
+        updateTodo(authToken: string, todoId: string, body?: UpdateTodo, options: any = {}): FetchArgs {
             // verify required parameter 'authToken' is not null or undefined
             if (authToken === null || authToken === undefined) {
                 throw new RequiredError('authToken','Required parameter authToken was null or undefined when calling updateTodo.');
             }
-            // verify required parameter 'todo' is not null or undefined
-            if (todo === null || todo === undefined) {
-                throw new RequiredError('todo','Required parameter todo was null or undefined when calling updateTodo.');
+            // verify required parameter 'todoId' is not null or undefined
+            if (todoId === null || todoId === undefined) {
+                throw new RequiredError('todoId','Required parameter todoId was null or undefined when calling updateTodo.');
             }
-            const localVarPath = `/todos/{todo}`
-                .replace(`{${"todo"}}`, encodeURIComponent(String(todo)));
+            const localVarPath = `/todos/{todoId}`
+                .replace(`{${"todoId"}}`, encodeURIComponent(String(todoId)));
             const localVarUrlObj = url.parse(localVarPath, true);
             const localVarRequestOptions = Object.assign({ method: 'PUT' }, options);
             const localVarHeaderParameter = {} as any;
@@ -526,12 +592,12 @@ export const TodoApiFp = function(configuration?: Configuration) {
          * delete a todo
          * @summary Deletes a todo
          * @param {string} authToken login-token to authorize user
-         * @param {string} todo todo id to delete
+         * @param {string} todoId todo id to delete
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        deleteTodo(authToken: string, todo: string, options?: any): (fetch?: FetchAPI, basePath?: string) => Promise<ResponseTodo> {
-            const localVarFetchArgs = TodoApiFetchParamCreator(configuration).deleteTodo(authToken, todo, options);
+        deleteTodo(authToken: string, todoId: string, options?: any): (fetch?: FetchAPI, basePath?: string) => Promise<ResponseTodo> {
+            const localVarFetchArgs = TodoApiFetchParamCreator(configuration).deleteTodo(authToken, todoId, options);
             return (fetch: FetchAPI = isomorphicFetch, basePath: string = BASE_PATH) => {
                 return fetch(basePath + localVarFetchArgs.url, localVarFetchArgs.options).then((response) => {
                     if (response.status >= 200 && response.status < 300) {
@@ -546,12 +612,12 @@ export const TodoApiFp = function(configuration?: Configuration) {
          * delete a todo
          * @summary get a todo's history
          * @param {string} authToken login-token to authorize user
-         * @param {string} todo todo id for its history
+         * @param {string} todoId todo id for its history
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        getTodoHistory(authToken: string, todo: string, options?: any): (fetch?: FetchAPI, basePath?: string) => Promise<HistoryResponse> {
-            const localVarFetchArgs = TodoApiFetchParamCreator(configuration).getTodoHistory(authToken, todo, options);
+        getTodoHistory(authToken: string, todoId: string, options?: any): (fetch?: FetchAPI, basePath?: string) => Promise<HistoryResponse> {
+            const localVarFetchArgs = TodoApiFetchParamCreator(configuration).getTodoHistory(authToken, todoId, options);
             return (fetch: FetchAPI = isomorphicFetch, basePath: string = BASE_PATH) => {
                 return fetch(basePath + localVarFetchArgs.url, localVarFetchArgs.options).then((response) => {
                     if (response.status >= 200 && response.status < 300) {
@@ -585,13 +651,13 @@ export const TodoApiFp = function(configuration?: Configuration) {
          * Update todo by Id
          * @summary Update todo by ID
          * @param {string} authToken login-token to authorize user
-         * @param {string} todo ID of todo to update
+         * @param {string} todoId ID of todo to update
          * @param {UpdateTodo} [body] update a created todo
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        updateTodo(authToken: string, todo: string, body?: UpdateTodo, options?: any): (fetch?: FetchAPI, basePath?: string) => Promise<UptResponseTodo> {
-            const localVarFetchArgs = TodoApiFetchParamCreator(configuration).updateTodo(authToken, todo, body, options);
+        updateTodo(authToken: string, todoId: string, body?: UpdateTodo, options?: any): (fetch?: FetchAPI, basePath?: string) => Promise<UptResponseTodo> {
+            const localVarFetchArgs = TodoApiFetchParamCreator(configuration).updateTodo(authToken, todoId, body, options);
             return (fetch: FetchAPI = isomorphicFetch, basePath: string = BASE_PATH) => {
                 return fetch(basePath + localVarFetchArgs.url, localVarFetchArgs.options).then((response) => {
                     if (response.status >= 200 && response.status < 300) {
@@ -626,23 +692,23 @@ export const TodoApiFactory = function (configuration?: Configuration, fetch?: F
          * delete a todo
          * @summary Deletes a todo
          * @param {string} authToken login-token to authorize user
-         * @param {string} todo todo id to delete
+         * @param {string} todoId todo id to delete
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        deleteTodo(authToken: string, todo: string, options?: any) {
-            return TodoApiFp(configuration).deleteTodo(authToken, todo, options)(fetch, basePath);
+        deleteTodo(authToken: string, todoId: string, options?: any) {
+            return TodoApiFp(configuration).deleteTodo(authToken, todoId, options)(fetch, basePath);
         },
         /**
          * delete a todo
          * @summary get a todo's history
          * @param {string} authToken login-token to authorize user
-         * @param {string} todo todo id for its history
+         * @param {string} todoId todo id for its history
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        getTodoHistory(authToken: string, todo: string, options?: any) {
-            return TodoApiFp(configuration).getTodoHistory(authToken, todo, options)(fetch, basePath);
+        getTodoHistory(authToken: string, todoId: string, options?: any) {
+            return TodoApiFp(configuration).getTodoHistory(authToken, todoId, options)(fetch, basePath);
         },
         /**
          * fetch todos
@@ -658,13 +724,13 @@ export const TodoApiFactory = function (configuration?: Configuration, fetch?: F
          * Update todo by Id
          * @summary Update todo by ID
          * @param {string} authToken login-token to authorize user
-         * @param {string} todo ID of todo to update
+         * @param {string} todoId ID of todo to update
          * @param {UpdateTodo} [body] update a created todo
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        updateTodo(authToken: string, todo: string, body?: UpdateTodo, options?: any) {
-            return TodoApiFp(configuration).updateTodo(authToken, todo, body, options)(fetch, basePath);
+        updateTodo(authToken: string, todoId: string, body?: UpdateTodo, options?: any) {
+            return TodoApiFp(configuration).updateTodo(authToken, todoId, body, options)(fetch, basePath);
         },
     };
 };
@@ -693,26 +759,26 @@ export class TodoApi extends BaseAPI {
      * delete a todo
      * @summary Deletes a todo
      * @param {string} authToken login-token to authorize user
-     * @param {string} todo todo id to delete
+     * @param {string} todoId todo id to delete
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      * @memberof TodoApi
      */
-    public deleteTodo(authToken: string, todo: string, options?: any) {
-        return TodoApiFp(this.configuration).deleteTodo(authToken, todo, options)(this.fetch, this.basePath);
+    public deleteTodo(authToken: string, todoId: string, options?: any) {
+        return TodoApiFp(this.configuration).deleteTodo(authToken, todoId, options)(this.fetch, this.basePath);
     }
 
     /**
      * delete a todo
      * @summary get a todo's history
      * @param {string} authToken login-token to authorize user
-     * @param {string} todo todo id for its history
+     * @param {string} todoId todo id for its history
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      * @memberof TodoApi
      */
-    public getTodoHistory(authToken: string, todo: string, options?: any) {
-        return TodoApiFp(this.configuration).getTodoHistory(authToken, todo, options)(this.fetch, this.basePath);
+    public getTodoHistory(authToken: string, todoId: string, options?: any) {
+        return TodoApiFp(this.configuration).getTodoHistory(authToken, todoId, options)(this.fetch, this.basePath);
     }
 
     /**
@@ -731,14 +797,14 @@ export class TodoApi extends BaseAPI {
      * Update todo by Id
      * @summary Update todo by ID
      * @param {string} authToken login-token to authorize user
-     * @param {string} todo ID of todo to update
+     * @param {string} todoId ID of todo to update
      * @param {UpdateTodo} [body] update a created todo
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      * @memberof TodoApi
      */
-    public updateTodo(authToken: string, todo: string, body?: UpdateTodo, options?: any) {
-        return TodoApiFp(this.configuration).updateTodo(authToken, todo, body, options)(this.fetch, this.basePath);
+    public updateTodo(authToken: string, todoId: string, body?: UpdateTodo, options?: any) {
+        return TodoApiFp(this.configuration).updateTodo(authToken, todoId, body, options)(this.fetch, this.basePath);
     }
 
 }
